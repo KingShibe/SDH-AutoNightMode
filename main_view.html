@@ -4,8 +4,186 @@
         <link rel="stylesheet" href="/steam_resource/css/39.css">
         <link rel="stylesheet" href="/steam_resource/css/library.css">
         <script src="/static/library.js"></script>
+        <script>
+
+            var SETTINGS = {
+                "enabled": false,
+                "sunrise": 7,
+                "sunset": 19,
+                "enableNightModeTimerSet": false,
+                "disableNightModeTimerSet": false
+            };
+
+            async function onReady(){
+                fetchSunsetSunrise();
+            }
+
+            function toggleAutoNightModePlugin(){
+                let toggle = document.getElementById("autoNightModePluginToggle");
+                let isActive = toggle.classList.contains("gamepaddialog_On_3ld7T");
+
+                if (isActive) {
+                    SETTINGS.enabled = false;
+                    toggle.classList.remove("gamepaddialog_On_3ld7T");
+                }
+                else {
+                    SETTINGS.enabled = true;
+                    toggle.classList.add("gamepaddialog_On_3ld7T");
+                    initializeTimeout();
+                }
+            }
+
+            async function toggleNightMode(){
+                let result = await execute_in_tab("SP", true, `var newDocument = FocusNavController.GetGamepadNavTreeByID("QuickAccess-NA").Root.Element;
+                newDocument.querySelectorAll("[class^='gamepaddialog_Toggle_']")[3].click();`);
+                if(result.success == true){console.log("Toggled Night Mode");}else{console.log("An error occurred toggling Night Mode");}
+            }
+
+            async function queryNightMode(type){
+                let result = await execute_in_tab("SP", true, `var newDocument = FocusNavController.GetGamepadNavTreeByID("QuickAccess-NA").Root.Element;
+                if(newDocument.querySelectorAll("[class^='gamepaddialog_Toggle_']")[3].className.includes("gamepaddialog_On_") != true){
+                    FLUBADUBADUB
+                }`);
+                if(result.success == true){
+                    console.log("Night Mode currently toggled");
+                    if(type == "disable"){
+                        toggleNightMode();
+                    }
+                }else{
+                    console.log("Night Mode currently not toggled");
+                    if(type == "enable"){
+                        toggleNightMode();
+                    }
+                }
+            }
+
+            async function fetchSunsetSunrise(){
+                // Using http://ip-api.com/ API for getting longitude/latitude
+                // Using https://sunrise-sunset.org/ API for getting local sunrise/sunset from longitude/latitude
+                fetch_nocors("http://ip-api.com/json/")
+                .then(lonLatResponse => {
+
+                    var parsedlonLatResponse = JSON.parse(lonLatResponse.body);
+                    var lat = parsedlonLatResponse.lat;
+                    var lng = parsedlonLatResponse.lon;
+                    
+                    fetch_nocors(`https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&formatted=0`)
+                    .then(response => {
+                        console.log("Successfully got sunsent/sunrise time");
+
+                        var parsedBody = JSON.parse(response.body);
+                        console.log(parsedBody);
+
+                        var sunrise = new Date(parsedBody.results.sunrise);
+                        var sunset = new Date(parsedBody.results.sunset);
+
+                        SETTINGS.sunrise = sunrise.getHours();
+                        SETTINGS.sunset = sunset.getHours();
+                        
+                        console.log(SETTINGS);
+                    });
+                    
+                }).catch(error => console.log("Failed to get sunset/sunrise times... Using default times... Error: " + error));
+                
+            }
+
+            async function initializeTimeout(){
+                if(new Date().getHours() <= 23 && new Date().getHours() >= SETTINGS.sunset){
+                    if(SETTINGS.enableNightModeTimerSet == false){
+                        enableNightMode();
+                        SETTINGS.enableNightModeTimerSet = true;
+                    }
+                    
+                    if(SETTINGS.disableNightModeTimerSet == false){
+                        var milli = ((24 - new Date().getHours()) + SETTINGS.sunrise) * 3600000
+                        setTimeout(disableNightMode, milli); 
+                        SETTINGS.disableNightModeTimerSet = true;
+                        console.log("Waiting " + milli + " to disable night mode...");
+                    }
+                }else if(new Date().getHours() >= 0 && new Date().getHours() <= SETTINGS.sunrise){
+                    if(SETTINGS.disableNightModeTimerSet == false){
+                        var milli1 = (SETTINGS.sunrise - new Date().getHours()) * 3600000
+                        setTimeout(disableNightMode, milli1); 
+                        SETTINGS.disableNightModeTimerSet = true;
+                        console.log("Waiting " + milli1 + " to disable night mode...");
+                    }
+
+                    if(SETTINGS.enableNightModeTimerSet == false){
+                        queryNightMode("enable");
+                        var milli2 = (SETTINGS.sunset - new Date().getHours()) * 3600000
+                        setTimeout(enableNightMode, milli2); 
+                        SETTINGS.enableNightModeTimerSet = true;
+                        console.log("Waiting " + milli2 + " to enable night mode...");
+                    }
+                }else{
+                    if(SETTINGS.disableNightModeTimerSet == false){
+                        var milli1 = ((24 - new Date().getHours()) + SETTINGS.sunrise) * 3600000
+                        setTimeout(disableNightMode, milli1); 
+                        SETTINGS.disableNightModeTimerSet = true;
+                        console.log("Waiting " + milli1 + " to disable night mode...");
+                    }
+                    
+                    if(SETTINGS.enableNightModeTimerSet == false){
+                        var milli2 = (SETTINGS.sunset - new Date().getHours()) * 3600000
+                        setTimeout(enableNightMode, milli2); 
+                        SETTINGS.enableNightModeTimerSet = true;
+                        console.log("Waiting " + milli2 + " to enable night mode...");
+                    } 
+                }
+                
+            }
+
+            async function enableNightMode(){
+                SETTINGS.enableNightModeTimerSet = false;
+                if(SETTINGS.enabled == true){
+                    queryNightMode("enable");
+                    fetchSunsetSunrise();
+                    var milli = ((24 - new Date().getHours()) + SETTINGS.sunset) * 3600000
+                    setTimeout(enableNightMode, milli); 
+                    SETTINGS.enableNightModeTimerSet = true;
+                    console.log("Waiting " + milli + " to enable night mode...");
+                }
+            }
+
+            async function disableNightMode(){
+                SETTINGS.disableNightModeTimerSet = false;
+                if(SETTINGS.enabled == true){
+                    queryNightMode("disable");
+                    fetchSunsetSunrise();
+                    var milli = ((24 - new Date().getHours()) + SETTINGS.sunrise) * 3600000
+                    setTimeout(disableNightMode, milli); 
+                    SETTINGS.disableNightModeTimerSet = true;
+                    console.log("Waiting " + milli + " to disable night mode...");
+                }
+            }
+        </script>
     </head>
-    <body>
-        <h2>Hello World</h2>
+    <body onload="onReady()" style="/*margin:0px;padding:0px;*/overflow-x:hidden;margin:0px;">
+        <!-- Used the html and toggle code from https://github.com/SteamDeckHomebrew/ExtraSettingsPlugin/blob/main/main_view.html and https://github.com/NGnius/PowerTools/blob/main/main.py -->
+        <div class="quickaccessmenu_TabGroupPanel_1QO7b">
+            <div class="quickaccesscontrols_PanelSection_2C0g0" style="margin-bottom:6px;">
+            </div>
+        </div>
+        
+        <div class="quickaccessmenu_TabGroupPanel_1QO7b Panel Focusable">
+            <div class="quickaccesscontrols_PanelSection_2C0g0">
+                <div class="quickaccesscontrols_PanelSectionRow_2VQ88">
+                    <div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithDescription_3bMIS gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel Focusable" style="--indent-level:0;">
+                        <div class="gamepaddialog_FieldLabelRow_H9WOq">
+                            <div class="gamepaddialog_FieldLabel_3b0U-">
+                                Auto Night Mode
+                            </div>
+                            <div class="gamepaddialog_FieldChildren_14_HB">
+                                <div id="autoNightModePluginToggle" tabindex="0" class="gamepaddialog_Toggle_24G4g Focusable" onclick="toggleAutoNightModePlugin()">
+                                    <div class="gamepaddialog_ToggleRail_2JtC3"></div>
+                                    <div class="gamepaddialog_ToggleSwitch_3__OD"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gamepaddialog_FieldDescription_2OJfk">When enabled, Night Mode is automatically managed</div>
+                    </div>
+                </div>
+        </div>
+        </div>
     </body>
 </html>

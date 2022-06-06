@@ -1,7 +1,12 @@
 {
-    "name": "Plugin name",
-    "author": "Plugin author",
+    "name": "Auto Night Mode",
+    "author": "KingShibe",
     "main_view_html": "main_view.html",
     "tile_view_html": "",
-    "flags": ["_hot_reload", "_root"]
+    "flags": [],
+    "publish": {
+        "discord_id": "251355002419806208",
+        "description": "Automatically enables/disables night mode based on local sunset/sunrise",
+        "tags": [ "utility", "night mode" ]
+    }
 }
