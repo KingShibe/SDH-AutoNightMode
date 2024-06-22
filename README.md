@@ -1,6 +1,6 @@
 # SDH-AutoNightMode
 
-#### <a style="color:#F56565">IMPORTANT: As of 08/02/2022, this repo has been deprecated due to scheduled night mode being natively added to the Steam Deck in SteamOS 3.3.</a>
+### IMPORTANT: As of 08/02/2022, this repo has been deprecated due to scheduled night mode being natively added to the Steam Deck in SteamOS 3.3.
 
 Auto Night Mode is a plugin for the Steam Deck plugin loader [Deck Brew](https://github.com/SteamDeckHomebrew/PluginLoader). This plugin automatically manages Night Mode on your Steam Deck by getting your local sunset/sunrise times and enabling/disabling the night mode at those times.
 
